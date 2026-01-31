@@ -1,39 +1,39 @@
 CC=clang
+AS=nasm
 CFLAGS=-ffreestanding -fno-builtin -fno-stack-protector -O2 -Wall -Wextra -mno-red-zone
+ASFLAGS=-f elf64
 LDFLAGS=-nostdlib -T linker.ld
 
 BUILD=build
 
-all: $(BUILD)/kernel.elf
+all: iso
 
-# creează folder build dacă nu există
 $(BUILD):
 	mkdir -p $(BUILD)
 
-# compilează boot.asm
+# assemble boot code
 $(BUILD)/boot.o: boot/boot.asm | $(BUILD)
-	nasm -f elf64 $< -o $@
+	$(AS) $(ASFLAGS) $< -o $@
 
-# compilează load.c
-$(BUILD)/load.o: bootloader/load.c bootloader/load.h | $(BUILD)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# compilează syscheck.c
-$(BUILD)/syscheck.o: bootloader/syscheck.c | $(BUILD)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# compilează kernel.c
+# compileaza kernel
 $(BUILD)/kernel.o: kernel.c | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# link kernel.elf
-$(BUILD)/kernel.elf: $(BUILD)/boot.o $(BUILD)/load.o $(BUILD)/syscheck.o $(BUILD)/kernel.o
+# link kernel ELF
+$(BUILD)/kernel.elf: $(BUILD)/boot.o $(BUILD)/kernel.o
 	ld $(LDFLAGS) $^ -o $@
 
-# rulează direct în QEMU
-run: $(BUILD)/kernel.elf
-	qemu-system-x86_64 -kernel $(BUILD)/kernel.elf -m 512M -serial stdio
+# ISO cu GRUB
+iso: $(BUILD)/kernel.elf
+	mkdir -p iso/boot/grub
+	cp $(BUILD)/kernel.elf iso/boot/
+	echo 'set timeout=0' > iso/boot/grub/grub.cfg
+	echo 'menuentry "Minux" { multiboot2 /boot/kernel.elf }' >> iso/boot/grub/grub.cfg
+	grub-mkrescue -o Minux.iso iso
 
-# clean
+# run in QEMU
+run: iso
+	qemu-system-x86_64 -cdrom Minux.iso
+
 clean:
-	rm -rf $(BUILD)
+	rm -rf $(BUILD) iso Minux.iso
