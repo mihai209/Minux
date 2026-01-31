@@ -5,6 +5,7 @@
   "description": "A minimal Unix-like kernel for educational purposes.",
 
   "scripts": {
+    "which": "which nasm qemu-system-x86_64 xorriso clang ld",
     "install-req": "sudo apt update && sudo apt install -y build-essential clang lld llvm gcc-multilib binutils nasm mtools dosfstools xorriso grub-pc-bin grub-efi-amd64-bin qemu-system-x86 gdb gdb-multiarch python3 make cmake git",
     "check-ver": "nasm -v && clang --version && ld --version && qemu-system-x86_64 --version && xorriso -version"
   }
